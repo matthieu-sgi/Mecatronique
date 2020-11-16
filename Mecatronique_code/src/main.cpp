@@ -23,10 +23,10 @@ void setup()
   pinMode(13,OUTPUT);
   pinMode(pinEncodeur1,INPUT);
   pinMode(pinEncodeur2,INPUT);
-  float erreur = 0;
 
+  Serial.begin(9600);
   Serial.print("Entrez la vitesse du moteur voulue");
-  vitesseMoteurVoulue = Serial.read();
+  vitesseMoteurVoulue = 255;
 }
 
 void loop()
@@ -35,6 +35,8 @@ void loop()
   unsigned long time = millis();
   int prevTime = time;
   int nTicks = 0;
+  digitalWrite(12, HIGH);
+  digitalWrite(13, LOW);
   while (time - prevTime < 10) {
     if (digitalRead(pinEncodeur1) == 255) nTicks++;
   }
@@ -43,7 +45,7 @@ void loop()
   erreur = vitesseMesuree - vitesseMoteurVoulue;
   sommeErreur += erreur;
 
-  float nouvelleVitesse = P * erreur + D * (erreur - erreurPrecedente) + I * sommeErreur;
+  float nouvelleVitesse = (P * erreur + D * (erreur - erreurPrecedente) + I * sommeErreur) * 255/118;
   analogWrite(pinVitesseVoulue, nouvelleVitesse);
   // analogWrite(pinVitesseVoulue, 255); //L'arduino envoie 5v en PWM, le moteur tourne à sa vitesse maximum
   // digitalWrite(12, LOW);              //On tourne dans un sens
