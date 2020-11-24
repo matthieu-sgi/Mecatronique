@@ -38,7 +38,7 @@ ISR(TIMER1_COMPA_vect){
   vitesse *= del_min; //On passe d'une distance à une vitesse
   
   error = target_rpm - vitesse;
-  //Serial.println(error);
+
   Error_integrale += error;
   derror = error - old_error;
   Error_integrale = (Error_integrale>10 )? 10 : Error_integrale; //Sécurités pour éviter valeurs aberrantes
