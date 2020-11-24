@@ -23,7 +23,7 @@ double old_error = 120; //Erreur du cycle précédent
 
 #define kp 0.1
 #define ki 0.52
-#define kd 0.002
+#define kd 0.002	
 double PID;
 
 void counter(){
@@ -91,9 +91,7 @@ void setup(){
 
 void loop(){
   
-  digitalWrite(LED_BUILTIN,led_status);
-  led_status = !led_status;
-  delay(1000);
+  //Pas nécessaire d'avoir une void loop
  
 
 }
