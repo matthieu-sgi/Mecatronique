@@ -5,7 +5,7 @@
 #define pin_dir_b 11
 #define pin_interrupt 2
 
-bool led_status = false;
+//bool led_status = false;
 bool direction = true; //true = en avant
 volatile int tick = 0;
 
@@ -64,7 +64,7 @@ void setup(){
   pinMode(pin_dir_a,OUTPUT);
   pinMode(pin_dir_b,OUTPUT);
   pinMode(pin_interrupt,INPUT);
-  pinMode(LED_BUILTIN,OUTPUT);
+  //pinMode(LED_BUILTIN,OUTPUT);
   digitalWrite(pin_PWM,0);
   digitalWrite(pin_dir_a,direction);
   digitalWrite(pin_dir_b,!direction);
