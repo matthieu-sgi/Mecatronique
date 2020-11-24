@@ -21,8 +21,8 @@ double Error_integrale = 0; //Erreur cumulée (intégrale)
 double derror; //Erreur dérivative (delta erreur)
 double old_error = 120; //Erreur du cycle précédent
 
-#define kp 0.3
-#define ki 0.3
+#define kp 0.1
+#define ki 0.52
 #define kd 0.0
 double PID;
 
