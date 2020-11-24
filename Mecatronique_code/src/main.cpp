@@ -23,7 +23,7 @@ double old_error = 120; //Erreur du cycle précédent
 
 #define kp 0.1
 #define ki 0.52
-#define kd 0.0
+#define kd 0.002
 double PID;
 
 void counter(){
