@@ -4,13 +4,15 @@
 #define pin_dir_a 12
 #define pin_dir_b 11
 #define pin_interrupt 2
-
+#define pin_trigger_ultrasound 7
+#define pin_echo_ultrasound 8
 bool led_status = false;
 bool direction = true; //true = en avant
 volatile int tick = 0;
 
 
-double target_rpm = 100.00;
+double target_rpm = 120.00;
+double rpm = target_rpm;
 double nb_tick_rota = 224.4;
 const int del = 33; //Delay en millisec
 const double del_min = 60000.00/del; //delay en minutes
@@ -26,6 +28,15 @@ double old_error = 120; //Erreur du cycle précédent
 #define kd 0.0
 double PID;
 
+float emergency_break(int target){
+  digitalWrite(pin_trigger_ultrasound,HIGH);
+  delayMicroseconds(10);
+  digitalWrite(pin_trigger_ultrasound, LOW);
+  float distance = (pulseIn(pin_echo_ultrasound,HIGH)/2000000.00) * 342000;
+  Serial.println(distance);
+  return  (distance <=50.00) ? 0.00 : target;
+}
+
 void counter(){
   tick++;
 }
@@ -33,11 +44,13 @@ void counter(){
 ISR(TIMER1_COMPA_vect){
   
   cli();
+  rpm = target_rpm;
   vitesse = tick/nb_tick_rota; //On obtient le nombre de tick effectué depuis dernière loop
   
   vitesse *= del_min; //On passe d'une distance à une vitesse
-  
-  error = target_rpm - vitesse;
+  rpm =  emergency_break(target_rpm); 
+  error = rpm - vitesse;
+    
   //Serial.println(error);
   Error_integrale += error;
   derror = error - old_error;
@@ -46,10 +59,11 @@ ISR(TIMER1_COMPA_vect){
   PID = kp*error + ki*Error_integrale + kd*derror;
   PID = (PID>5) ? 5: PID;
   PID = (PID<0) ? 0 : PID;
+  
  
   //Le PID calculé est en valeur de tension, nous le voulons en byte pour le PWM
   
-  Serial.println(vitesse);
+  //Serial.println(vitesse);
   analogWrite(pin_PWM,(int)(PID*51));
   tick = 0;
   old_error = error;
@@ -65,9 +79,12 @@ void setup(){
   pinMode(pin_dir_b,OUTPUT);
   pinMode(pin_interrupt,INPUT);
   pinMode(LED_BUILTIN,OUTPUT);
+  pinMode(pin_trigger_ultrasound,OUTPUT);
+  pinMode(pin_echo_ultrasound,INPUT);
   digitalWrite(pin_PWM,0);
   digitalWrite(pin_dir_a,direction);
   digitalWrite(pin_dir_b,!direction);
+
   attachInterrupt(digitalPinToInterrupt(pin_interrupt) ,counter,RISING);
 
 
