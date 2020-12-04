@@ -4,9 +4,14 @@
 #define pin_dir_a 12
 #define pin_dir_b 11
 #define pin_interrupt 2
+<<<<<<< HEAD
 #define pin_trigger_ultrasound 7
 #define pin_echo_ultrasound 8
 bool led_status = false;
+=======
+
+//bool led_status = false;
+>>>>>>> c9d7bb708886a861ab2d45d1bb734895f58fef20
 bool direction = true; //true = en avant
 volatile int tick = 0;
 
@@ -23,9 +28,9 @@ double Error_integrale = 0; //Erreur cumulée (intégrale)
 double derror; //Erreur dérivative (delta erreur)
 double old_error = 120; //Erreur du cycle précédent
 
-#define kp 0.3
-#define ki 0.3
-#define kd 0.0
+#define kp 0.1
+#define ki 0.52
+#define kd 0.002	
 double PID;
 
 float emergency_break(int target){
@@ -48,10 +53,16 @@ ISR(TIMER1_COMPA_vect){
   vitesse = tick/nb_tick_rota; //On obtient le nombre de tick effectué depuis dernière loop
   
   vitesse *= del_min; //On passe d'une distance à une vitesse
+<<<<<<< HEAD
   rpm =  emergency_break(target_rpm); 
   error = rpm - vitesse;
     
   //Serial.println(error);
+=======
+  
+  error = target_rpm - vitesse;
+
+>>>>>>> c9d7bb708886a861ab2d45d1bb734895f58fef20
   Error_integrale += error;
   derror = error - old_error;
   Error_integrale = (Error_integrale>10 )? 10 : Error_integrale; //Sécurités pour éviter valeurs aberrantes
@@ -78,9 +89,13 @@ void setup(){
   pinMode(pin_dir_a,OUTPUT);
   pinMode(pin_dir_b,OUTPUT);
   pinMode(pin_interrupt,INPUT);
+<<<<<<< HEAD
   pinMode(LED_BUILTIN,OUTPUT);
   pinMode(pin_trigger_ultrasound,OUTPUT);
   pinMode(pin_echo_ultrasound,INPUT);
+=======
+  //pinMode(LED_BUILTIN,OUTPUT);
+>>>>>>> c9d7bb708886a861ab2d45d1bb734895f58fef20
   digitalWrite(pin_PWM,0);
   digitalWrite(pin_dir_a,direction);
   digitalWrite(pin_dir_b,!direction);
@@ -108,9 +123,7 @@ void setup(){
 
 void loop(){
   
-  digitalWrite(LED_BUILTIN,led_status);
-  led_status = !led_status;
-  delay(1000);
+  //Pas nécessaire d'avoir une void loop
  
 
 }
