@@ -18,7 +18,7 @@
 
 
 bool led_status = false;
-bool direction = true; //true = en avant
+bool direction = false; //false = en avant
 volatile int tick = 0;
 
 
@@ -59,7 +59,7 @@ ISR(TIMER1_COMPA_vect){
   vitesse = tick/nb_tick_rota; //On obtient le nombre de tick effectué depuis dernière loop
   
   vitesse *= del_min; //On passe d'une distance à une vitesse
-  //rpm =  emergency_break(target_rpm); 
+  rpm =  emergency_break(target_rpm); 
   error = rpm - vitesse;
     
   //Serial.println(error);
