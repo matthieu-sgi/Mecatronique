@@ -1,23 +1,29 @@
 #include <Arduino.h>
 
-#define pin_PWM 6
-#define pin_dir_a 12
-#define pin_dir_b 11
-#define pin_interrupt 2
-<<<<<<< HEAD
+//Définitions du moteur droit
+#define left_pin_PWM 6
+#define left_pin_dir_a 11
+#define left_pin_dir_b 12
+#define left_pin_interrupt 3
+
+//Définitions du moteur gauche
+#define right_pin_PWM 5
+#define right_pin_dir_a 9
+#define right_pin_dir_b 10
+#define right_pin_interrupt 2
+
+//Définitions de l'ultrason
 #define pin_trigger_ultrasound 7
 #define pin_echo_ultrasound 8
-bool led_status = false;
-=======
 
-//bool led_status = false;
->>>>>>> c9d7bb708886a861ab2d45d1bb734895f58fef20
+
+bool led_status = false;
 bool direction = true; //true = en avant
 volatile int tick = 0;
 
 
-double target_rpm = 120.00;
-double rpm = target_rpm;
+double target_rpm = 120.00; //Valeur fixe
+double rpm = target_rpm; //Valeur changeante
 double nb_tick_rota = 224.4;
 const int del = 33; //Delay en millisec
 const double del_min = 60000.00/del; //delay en minutes
@@ -53,16 +59,10 @@ ISR(TIMER1_COMPA_vect){
   vitesse = tick/nb_tick_rota; //On obtient le nombre de tick effectué depuis dernière loop
   
   vitesse *= del_min; //On passe d'une distance à une vitesse
-<<<<<<< HEAD
-  rpm =  emergency_break(target_rpm); 
+  //rpm =  emergency_break(target_rpm); 
   error = rpm - vitesse;
     
   //Serial.println(error);
-=======
-  
-  error = target_rpm - vitesse;
-
->>>>>>> c9d7bb708886a861ab2d45d1bb734895f58fef20
   Error_integrale += error;
   derror = error - old_error;
   Error_integrale = (Error_integrale>10 )? 10 : Error_integrale; //Sécurités pour éviter valeurs aberrantes
@@ -70,12 +70,13 @@ ISR(TIMER1_COMPA_vect){
   PID = kp*error + ki*Error_integrale + kd*derror;
   PID = (PID>5) ? 5: PID;
   PID = (PID<0) ? 0 : PID;
-  
+  Serial.println(PID*51);
  
   //Le PID calculé est en valeur de tension, nous le voulons en byte pour le PWM
   
   //Serial.println(vitesse);
-  analogWrite(pin_PWM,(int)(PID*51));
+  analogWrite(right_pin_PWM,(int)(PID*51));
+  analogWrite(left_pin_PWM,(int)(PID*51));
   tick = 0;
   old_error = error;
   
@@ -85,22 +86,34 @@ ISR(TIMER1_COMPA_vect){
 void setup(){
 
   Serial.begin(9600);
-  pinMode(pin_PWM, OUTPUT);
-  pinMode(pin_dir_a,OUTPUT);
-  pinMode(pin_dir_b,OUTPUT);
-  pinMode(pin_interrupt,INPUT);
-<<<<<<< HEAD
+  //Pin mode des pins du moteur droit
+  pinMode(right_pin_PWM, OUTPUT);
+  pinMode(right_pin_dir_a,OUTPUT);
+  pinMode(right_pin_dir_b,OUTPUT);
+  pinMode(right_pin_interrupt,INPUT);
+
+  //Pin mode des pins du moteur gauche
+  pinMode(left_pin_PWM, OUTPUT);
+  pinMode(left_pin_dir_a,OUTPUT);
+  pinMode(left_pin_dir_b,OUTPUT);
+  pinMode(left_pin_interrupt,INPUT);
+
   pinMode(LED_BUILTIN,OUTPUT);
   pinMode(pin_trigger_ultrasound,OUTPUT);
   pinMode(pin_echo_ultrasound,INPUT);
-=======
-  //pinMode(LED_BUILTIN,OUTPUT);
->>>>>>> c9d7bb708886a861ab2d45d1bb734895f58fef20
-  digitalWrite(pin_PWM,0);
-  digitalWrite(pin_dir_a,direction);
-  digitalWrite(pin_dir_b,!direction);
 
-  attachInterrupt(digitalPinToInterrupt(pin_interrupt) ,counter,RISING);
+  //Set default values for right motor
+  digitalWrite(right_pin_PWM,0);
+  digitalWrite(right_pin_dir_a,direction);
+  digitalWrite(right_pin_dir_b,!direction);
+  attachInterrupt(digitalPinToInterrupt(right_pin_interrupt) ,counter,RISING);
+
+  //Set default values for left motor
+  digitalWrite(left_pin_PWM,0);
+  digitalWrite(left_pin_dir_a,!direction);
+  digitalWrite(left_pin_dir_b,direction);
+  attachInterrupt(digitalPinToInterrupt(left_pin_interrupt) ,counter,RISING);
+  
 
 
   // TIMER 1 for interrupt frequency 30.00120004800192 Hz:
