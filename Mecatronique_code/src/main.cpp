@@ -12,73 +12,203 @@
 #define right_pin_dir_b 10
 #define right_pin_interrupt 2
 
-//Définitions de l'ultrason
-#define pin_trigger_ultrasound 7
-#define pin_echo_ultrasound 8
+//Définitions de l'ultrason droit
+#define right_pin_trigger_ultrasound 7
+#define right_pin_echo_ultrasound 8
+
+//Définitions de l'ultrason gauche 
+#define left_pin_trigger_ultrasound 9
+#define left_pin_echo_ultrasound 10
+
+#define taille_roues 
 
 
 bool led_status = false;
-bool direction = false; //false = en avant
-volatile int tick = 0;
+bool Rdirection = false; //false = en avant
+bool Ldirection = Rdirection;
+volatile int Rtick = 0;
+volatile int Ltick = 0;
 
 
 double target_rpm = 120.00; //Valeur fixe
-double rpm = target_rpm; //Valeur changeante
+double Rrpm = target_rpm; //Valeur changeante right
+double Lrpm = target_rpm; //Valeur changeante left
 double nb_tick_rota = 224.4;
 const int del = 33; //Delay en millisec
 const double del_min = 60000.00/del; //delay en minutes
-double vitesse; //Vitesse en rpm
 
-double error; //Erreur proportionnelle instantanée
-double Error_integrale = 0; //Erreur cumulée (intégrale)
-double derror; //Erreur dérivative (delta erreur)
-double old_error = 120; //Erreur du cycle précédent
+double Rvitesse; //Vitesse en rpm droite
+double Lvitesse; //L
+
+double Rdistance = 0.00;
+double Ldistance = 0.00;
+
+//Définitions du PID moteur droit
+double Rerror; //Erreur proportionnelle instantanée
+double RError_integrale = 0; //Erreur cumulée (intégrale)
+double Rderror; //Erreur dérivative (delta erreur)
+double Rold_error = 120; //Erreur du cycle précédent
+
+//Définitions du PID moteur droit
+double Lerror; //Erreur proportionnelle instantanée
+double LError_integrale = 0; //Erreur cumulée (intégrale)
+double Lderror; //Erreur dérivative (delta erreur)
+double Lold_error = 120; //Erreur du cycle précédent
 
 #define kp 0.1
 #define ki 0.52
 #define kd 0.002	
-double PID;
+double RPID;
+double LPID;
 
-float emergency_break(int target){
-  digitalWrite(pin_trigger_ultrasound,HIGH);
+bool Remergency_break(int target){
+  digitalWrite(right_pin_trigger_ultrasound,HIGH);
   delayMicroseconds(10);
-  digitalWrite(pin_trigger_ultrasound, LOW);
-  float distance = (pulseIn(pin_echo_ultrasound,HIGH)/2000000.00) * 342000;
+  digitalWrite(right_pin_trigger_ultrasound, LOW);
+  float distance = (pulseIn(right_pin_echo_ultrasound,HIGH)/2000000.00) * 342000;
+  digitalWrite(left_pin_trigger_ultrasound,HIGH);
+  delayMicroseconds(10);
+  digitalWrite(left_pin_trigger_ultrasound, LOW);
+  if(distance>(pulseIn(left_pin_echo_ultrasound,HIGH)/2000000.00) * 342000)
+  {
+  distance = pulseIn(left_pin_echo_ultrasound,HIGH)/2000000.00;
+  }
   Serial.println(distance);
-  return  (distance <=50.00) ? 0.00 : target;
+  
+  return  (distance <=150.00) ? 0.00 : target;
 }
 
-void counter(){
-  tick++;
+void EmergencyBreak(int target) {
+  if (Remergency_break(target) == 0.00) {
+    Ldirection != Ldirection;
+    Rdistance = 0.00;
+    while (Rdistance <= 55) {
+      cli();
+      Rrpm = target_rpm;
+      Lrpm = target_rpm;
+
+      Rvitesse = Rtick/nb_tick_rota; //On obtient le nombre de tick effectué depuis dernière loop
+      Rdistance += Rvitesse;
+      
+      Rvitesse *= del_min; //On passe d'une distance à une vitesse
+
+      Lvitesse = Ltick/nb_tick_rota;
+      Ldistance += Lvitesse;
+      Lvitesse *= del_min;
+      Rerror = Rrpm - Rvitesse;
+      Lerror = Lrpm - Lvitesse;
+        
+      //Serial.println(error);
+      //PID
+      RError_integrale += Rerror;
+      LError_integrale += Lerror;
+
+      Rderror = Rerror - Rold_error;
+      Lderror = Lerror - Lold_error;
+
+      RError_integrale = (RError_integrale>10 )? 10 : RError_integrale; //Sécurités pour éviter valeurs aberrantes
+      RError_integrale = (RError_integrale< -10 )? -10 : RError_integrale;
+
+      LError_integrale = (LError_integrale>10) ? 10 : LError_integrale; 
+      LError_integrale = (LError_integrale<-10) ? -10 : LError_integrale;
+
+      RPID = kp*Rerror + ki*RError_integrale + kd*Rderror;
+      RPID = (RPID>5) ? 5: RPID;
+      RPID = (RPID<0) ? 0 : RPID;
+      //Serial.println(PID*51);
+
+      LPID = kp*Lerror + ki*LError_integrale + kd*Lderror;
+      LPID = (LPID>5) ? 5: LPID;
+      LPID = (LPID<0) ? 0 : LPID;
+      //Serial.println(LPID*51);
+      //Le PID calculé est en valeur de tension, nous le voulons en byte pour le PWM
+      
+      //Serial.println(vitesse);
+      analogWrite(right_pin_PWM,(int)(RPID*51));
+      analogWrite(left_pin_PWM,(int)(LPID*51));
+      Rtick = 0;
+      Ltick = 0;
+      Rold_error = Rerror;
+      Lold_error = Lerror;
+
+      
+      sei();
+    }
+  }
+  Ldirection != Ldirection;
+}
+
+// bool Lemergency_break(int target) {
+//   digitalWrite(left_pin_trigger_ultrasound,HIGH);
+//   delayMicroseconds(10);
+//   digitalWrite(left_pin_trigger_ultrasound, LOW);
+//   float distance = (pulseIn(left_pin_echo_ultrasound,HIGH)/2000000.00) * 342000;
+//   Serial.println(distance);
+//   return  (distance <=50.00) ? 0.00 : target;
+// }
+
+void Lcounter(){
+  Ltick++;
+  
+}
+
+void Rcounter(){
+  Rtick++;
 }
 
 ISR(TIMER1_COMPA_vect){
   
   cli();
-  rpm = target_rpm;
-  vitesse = tick/nb_tick_rota; //On obtient le nombre de tick effectué depuis dernière loop
+  Rrpm = target_rpm;
+  Lrpm = target_rpm;
+
+  Rvitesse = Rtick/nb_tick_rota; //On obtient le nombre de tick effectué depuis dernière loop
+  Rdistance += Rvitesse;
   
-  vitesse *= del_min; //On passe d'une distance à une vitesse
-  rpm =  emergency_break(target_rpm); 
-  error = rpm - vitesse;
+  Rvitesse *= del_min; //On passe d'une distance à une vitesse
+
+  Lvitesse = Ltick/nb_tick_rota;
+  Ldistance += Lvitesse;
+  Lvitesse *= del_min; //
+  //Rrpm =  Remergency_break(target_rpm); 
+  //Lrpm =  Remergency_break(target_rpm);
+  EmergencyBreak();
+  Rerror = Rrpm - Rvitesse;
+  Lerror = Lrpm - Lvitesse;
     
   //Serial.println(error);
-  Error_integrale += error;
-  derror = error - old_error;
-  Error_integrale = (Error_integrale>10 )? 10 : Error_integrale; //Sécurités pour éviter valeurs aberrantes
-  Error_integrale = (Error_integrale< -10 )? -10 : Error_integrale;
-  PID = kp*error + ki*Error_integrale + kd*derror;
-  PID = (PID>5) ? 5: PID;
-  PID = (PID<0) ? 0 : PID;
-  Serial.println(PID*51);
- 
+  //PID
+  RError_integrale += Rerror;
+  LError_integrale += Lerror;
+
+  Rderror = Rerror - Rold_error;
+  Lderror = Lerror - Lold_error;
+
+  RError_integrale = (RError_integrale>10 )? 10 : RError_integrale; //Sécurités pour éviter valeurs aberrantes
+  RError_integrale = (RError_integrale< -10 )? -10 : RError_integrale;
+
+  LError_integrale = (LError_integrale>10) ? 10 : LError_integrale; 
+  LError_integrale = (LError_integrale<-10) ? -10 : LError_integrale;
+
+  RPID = kp*Rerror + ki*RError_integrale + kd*Rderror;
+  RPID = (RPID>5) ? 5: RPID;
+  RPID = (RPID<0) ? 0 : RPID;
+  //Serial.println(PID*51);
+
+  LPID = kp*Lerror + ki*LError_integrale + kd*Lderror;
+  LPID = (LPID>5) ? 5: LPID;
+  LPID = (LPID<0) ? 0 : LPID;
+  //Serial.println(LPID*51);
   //Le PID calculé est en valeur de tension, nous le voulons en byte pour le PWM
   
   //Serial.println(vitesse);
-  analogWrite(right_pin_PWM,(int)(PID*51));
-  analogWrite(left_pin_PWM,(int)(PID*51));
-  tick = 0;
-  old_error = error;
+  analogWrite(right_pin_PWM,(int)(RPID*51));
+  analogWrite(left_pin_PWM,(int)(LPID*51));
+  Rtick = 0;
+  Ltick = 0;
+  Rold_error = Rerror;
+  Lold_error = Lerror;
+
   
   sei();
 }
@@ -99,20 +229,23 @@ void setup(){
   pinMode(left_pin_interrupt,INPUT);
 
   pinMode(LED_BUILTIN,OUTPUT);
-  pinMode(pin_trigger_ultrasound,OUTPUT);
-  pinMode(pin_echo_ultrasound,INPUT);
+  pinMode(right_pin_trigger_ultrasound,OUTPUT);
+  pinMode(right_pin_echo_ultrasound,INPUT);
+
+  pinMode(left_pin_trigger_ultrasound,OUTPUT);
+  pinMode(left_pin_echo_ultrasound,INPUT);
 
   //Set default values for right motor
   digitalWrite(right_pin_PWM,0);
-  digitalWrite(right_pin_dir_a,direction);
-  digitalWrite(right_pin_dir_b,!direction);
-  attachInterrupt(digitalPinToInterrupt(right_pin_interrupt) ,counter,RISING);
+  digitalWrite(right_pin_dir_a,Rdirection);
+  digitalWrite(right_pin_dir_b,!Rdirection);
+  attachInterrupt(digitalPinToInterrupt(right_pin_interrupt) ,Rcounter,RISING);
 
   //Set default values for left motor
   digitalWrite(left_pin_PWM,0);
-  digitalWrite(left_pin_dir_a,!direction);
-  digitalWrite(left_pin_dir_b,direction);
-  attachInterrupt(digitalPinToInterrupt(left_pin_interrupt) ,counter,RISING);
+  digitalWrite(left_pin_dir_a,!Ldirection);
+  digitalWrite(left_pin_dir_b,Ldirection);
+  attachInterrupt(digitalPinToInterrupt(left_pin_interrupt) ,Lcounter,RISING);
   
 
 
